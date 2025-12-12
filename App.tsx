@@ -7,6 +7,7 @@ import { DEFAULT_PIPELINE, INITIAL_LEADS } from './constants';
 import { GlassCard } from './components/ui/GlassCard';
 import { Check, Shield, Slack, MessageCircle, UserPlus, Mail, Building, User as UserIcon, Bell, Key, Globe, Terminal, ChevronRight } from 'lucide-react';
 import { Badge } from './components/ui/Badge';
+import { Lead } from './types';
 
 const Billing: React.FC = () => (
   <div className="p-12 max-w-5xl mx-auto animate-in fade-in duration-500">
@@ -178,11 +179,30 @@ export default function App() {
   const [pipeline] = useState(DEFAULT_PIPELINE);
   const [leads, setLeads] = useState(INITIAL_LEADS);
 
+  // CRUD Functions
+  const addLead = (lead: Lead) => {
+    setLeads([...leads, lead]);
+  };
+
+  const updateLead = (updatedLead: Lead) => {
+    setLeads(leads.map(l => l.id === updatedLead.id ? updatedLead : l));
+  };
+
+  const deleteLead = (leadId: string) => {
+    setLeads(leads.filter(l => l.id !== leadId));
+  };
+
   const updateLeadStage = (leadId: string, newStageId: string) => {
     setLeads(prev => prev.map(lead => {
         if (lead.id === leadId) {
-            // Simple optimistic update for the demo
-            return { ...lead, stageId: newStageId, status: newStageId === 'stage-won' ? 'Won' : lead.status };
+            let status = lead.status;
+            if (newStageId === 'stage-won') status = 'Won';
+            if (newStageId === 'stage-new') status = 'New';
+            if (newStageId === 'stage-contacted') status = 'Contacted';
+            if (newStageId === 'stage-qualified') status = 'Qualified';
+            if (newStageId === 'stage-negotiation') status = 'Negotiation';
+            
+            return { ...lead, stageId: newStageId, status };
         }
         return lead;
     }));
@@ -191,9 +211,18 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard leads={leads} />;
       case 'pipeline':
-        return <Pipeline pipeline={pipeline} leads={leads} updateLeadStage={updateLeadStage} />;
+        return (
+          <Pipeline 
+            pipeline={pipeline} 
+            leads={leads} 
+            updateLeadStage={updateLeadStage} 
+            onAddLead={addLead}
+            onUpdateLead={updateLead}
+            onDeleteLead={deleteLead}
+          />
+        );
       case 'leads':
         return <LeadsList leads={leads} />;
       case 'billing':
@@ -201,7 +230,7 @@ export default function App() {
       case 'settings':
         return <Settings />;
       default:
-        return <Dashboard />;
+        return <Dashboard leads={leads} />;
     }
   };
 
