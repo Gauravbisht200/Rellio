@@ -1,249 +1,382 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from './lib/supabase';
+import { Landing } from './pages/Landing';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Pipeline } from './pages/Pipeline';
 import { LeadsList } from './pages/LeadsList';
+import { Billing } from './pages/Billing';
+import { Settings } from './pages/Settings';
 import { DEFAULT_PIPELINE, INITIAL_LEADS } from './constants';
 import { GlassCard } from './components/ui/GlassCard';
-import { Check, Shield, Slack, MessageCircle, UserPlus, Mail, Building, User as UserIcon, Bell, Key, Globe, Terminal, ChevronRight } from 'lucide-react';
-import { Badge } from './components/ui/Badge';
-import { Lead } from './types';
+import { Check, Shield, Mail, Terminal, Globe, User as UserIcon, Bell, Key } from 'lucide-react';
+import { Lead, LeadStatus } from './types';
+import { AddLeadModal } from './components/AddLeadModal';
+import { ImportLeadsModal } from './components/ImportLeadsModal';
+import { repairPipelineStages } from './lib/pipelineUtils';
 
-const Billing: React.FC = () => (
-  <div className="p-12 max-w-5xl mx-auto animate-in fade-in duration-500">
-    <h1 className="text-3xl font-bold text-gray-900 mb-2">Billing & Plans</h1>
-    <p className="text-gray-500 mb-10">Manage your subscription and payment methods.</p>
-    
-    <div className="grid md:grid-cols-2 gap-8">
-       <GlassCard className="p-8 relative overflow-hidden group border-primary-500/20">
-          <div className="absolute top-0 right-0 p-4">
-             <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Active</span>
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Pro Plan</h3>
-          <p className="text-4xl font-bold text-gray-900 mb-6">$29<span className="text-base text-gray-400 font-normal">/mo</span></p>
-          <ul className="space-y-4 mb-8">
-             {['Unlimited Leads', '5 Pipelines', 'Advanced Analytics', 'Priority Support'].map(item => (
-                <li key={item} className="flex items-center gap-3 text-sm text-gray-600">
-                   <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center text-green-600">
-                      <Check size={12} strokeWidth={3} />
-                   </div>
-                   {item}
-                </li>
-             ))}
-          </ul>
-          <button className="w-full py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
-             Manage Subscription
-          </button>
-       </GlassCard>
-       
-       <GlassCard className="p-8 flex flex-col justify-between">
-           <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-6">Payment Method</h3>
-              <div className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50 mb-6">
-                 <div className="w-12 h-8 bg-gray-800 rounded-sm text-white text-[10px] flex items-center justify-center font-bold tracking-wider">VISA</div>
-                 <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">•••• 4242</p>
-                    <p className="text-xs text-gray-500">Expires 12/25</p>
-                 </div>
-              </div>
-           </div>
-           <button className="text-primary-600 text-sm font-medium hover:underline text-left">Update payment method</button>
-       </GlassCard>
-    </div>
-  </div>
-);
+// ... (existing imports)
 
-// Custom Toggle Component
-const Toggle = ({ checked }: { checked: boolean }) => (
-    <div className={`w-11 h-6 rounded-full relative transition-colors duration-200 cursor-pointer ${checked ? 'bg-gray-900' : 'bg-gray-200'}`}>
-        <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all duration-200 ${checked ? 'left-6' : 'left-1'}`}></div>
-    </div>
-);
 
-const Settings: React.FC = () => {
-    const [activeCategory, setActiveCategory] = useState('General');
 
-    const navItems = [
-        { name: 'General', icon: Globe },
-        { name: 'Account', icon: UserIcon },
-        { name: 'Notifications', icon: Bell },
-        { name: 'Security', icon: Shield },
-        { name: 'API Keys', icon: Key },
-    ];
+
+// Protected Route Component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    const { user, loading } = useAuth();
+
+    if (loading) return null; // Or a loading spinner
+
+    if (!user) {
+        return <Navigate to="/" replace />;
+    }
+
+    return <>{children}</>;
+};
+
+// App Layout Component (Sidebar + Content)
+const AppLayout = () => {
+    const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [pipeline, setPipeline] = useState(DEFAULT_PIPELINE);
+    const [leads, setLeads] = useState<Lead[]>([]);
+    const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // Fetch Data from Supabase
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchData = async () => {
+            try {
+                // 1. Get Workspace
+                const { data: workspace } = await supabase
+                    .from('workspaces')
+                    .select('id')
+                    .eq('owner_user_id', user.id)
+                    .single();
+
+                if (!workspace) return;
+
+                // 2. Get Pipeline
+                const { data: pipe } = await supabase
+                    .from('pipelines')
+                    .select('*')
+                    .eq('workspace_id', workspace.id)
+                    .eq('is_default', true)
+                    .single();
+
+                if (pipe) {
+                    // 3. Get Stages
+                    const { data: stages } = await supabase
+                        .from('pipeline_stages')
+                        .select('*')
+                        .eq('pipeline_id', pipe.id)
+                        .order('order_index');
+
+                    if (stages) {
+                        // Auto-repair logic: Ensure we have exactly the 6 strict stages
+                        // We check if the stages list matches our expectation roughly. 
+                        // If we see "Proposal Sent" or "Contact Made", we trigger a repair.
+                        // Or simply run it once to be safe if names don't match.
+                        const strictNames = ['New', 'Contacted', 'Qualified', 'Negotiation', 'Closed', 'Lost'];
+                        const needsRepair = stages.length !== 6 || !stages.every((s: any) => strictNames.includes(s.name));
+
+                        let currentStages = stages;
+
+                        if (needsRepair) {
+                            console.log('Pipeline requires repair. Running auto-healer...');
+                            await repairPipelineStages(pipe.id, stages);
+                            // Re-fetch stages after repair
+                            const { data: refreshedStages } = await supabase
+                                .from('pipeline_stages')
+                                .select('*')
+                                .eq('pipeline_id', pipe.id)
+                                .order('order_index');
+                            if (refreshedStages) currentStages = refreshedStages;
+                        }
+
+                        const mappedStages = currentStages.map((s: any) => ({
+                            id: s.id,
+                            name: s.name,
+                            order: s.order_index,
+                            color: s.color || 'gray'
+                        }));
+
+                        setPipeline({
+                            id: pipe.id,
+                            name: pipe.name,
+                            stages: mappedStages
+                        });
+                    }
+
+                    // 4. Get Leads
+                    const { data: leadsData } = await supabase
+                        .from('leads')
+                        .select('*')
+                        .eq('workspace_id', workspace.id);
+
+                    if (leadsData) {
+                        const mappedLeads = leadsData.map((l: any) => ({
+                            id: l.id,
+                            name: l.name,
+                            company: l.company || '',
+                            email: l.email || '',
+                            phone: l.phone,
+                            value: Number(l.value),
+                            status: l.status === 'Won' ? 'Closed' : (l.status === 'Open' ? 'New' : l.status),
+                            stageId: l.pipeline_stage_id,
+                            ownerId: l.owner_user_id,
+                            createdAt: l.created_at,
+                            avatarUrl: ''
+                        }));
+                        setLeads(mappedLeads);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+
+        fetchData();
+    }, [user]);
+
+    // Sync URL path with activeTab logic (basic implementation)
+    useEffect(() => {
+        const path = location.pathname.substring(1); // remove leading slash
+        if (['dashboard', 'pipeline', 'leads', 'billing', 'settings'].includes(path)) {
+            setActiveTab(path);
+        }
+    }, [location]);
+
+    const handleTabChange = (tab: string) => {
+        setActiveTab(tab);
+        navigate(`/${tab}`);
+    };
+
+    // CRUD Functions (Supabase Integrated)
+    const addLead = async (lead: Lead) => {
+        try {
+            const { data: workspace } = await supabase.from('workspaces').select('id').eq('owner_user_id', user.id).single();
+            if (!workspace) return; // Should handle error
+
+            // Ensure we use a valid UUID for the stage
+            let targetStageId = lead.stageId;
+            // If stageId is the placeholder 'stage-new' or invalid, default to the first stage from the real pipeline
+            const stageExists = pipeline.stages.some(s => s.id === targetStageId);
+            if ((!stageExists || targetStageId === 'stage-new') && pipeline.stages.length > 0) {
+                targetStageId = pipeline.stages[0].id;
+            }
+
+            const { data, error } = await supabase.from('leads').insert({
+                name: lead.name,
+                company: lead.company,
+                email: lead.email,
+                phone: lead.phone,
+                value: lead.value,
+                status: lead.status === 'New' ? 'Open' : lead.status, // Normalize 'New' to 'Open' for DB consistency if desired, or keep 'New'
+                pipeline_stage_id: targetStageId,
+                workspace_id: workspace.id,
+                owner_user_id: user.id,
+                tags: lead.tags || []
+            }).select().single();
+
+            if (error) {
+                console.error('Error adding lead:', error);
+                // Ideally show user feedback here
+                return;
+            }
+
+            // Update local state with the real ID from DB
+            const newLead = {
+                ...lead,
+                id: data.id,
+                stageId: data.pipeline_stage_id,
+                status: data.status === 'Open' ? 'New' : data.status
+            };
+            setLeads([...leads, newLead]);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const updateLead = async (updatedLead: Lead) => {
+        try {
+            const { error } = await supabase.from('leads').update({
+                name: updatedLead.name,
+                company: updatedLead.company,
+                email: updatedLead.email,
+                phone: updatedLead.phone,
+                value: updatedLead.value,
+                status: updatedLead.status,
+                pipeline_stage_id: updatedLead.stageId
+            }).eq('id', updatedLead.id);
+
+            if (error) throw error;
+            setLeads(leads.map(l => l.id === updatedLead.id ? updatedLead : l));
+        } catch (err) {
+            console.error('Error updating lead:', err);
+        }
+    };
+
+    const deleteLead = async (leadId: string) => {
+        try {
+            const { error } = await supabase.from('leads').delete().eq('id', leadId);
+            if (error) throw error;
+            setLeads(leads.filter(l => l.id !== leadId));
+        } catch (err) {
+            console.error('Error deleting lead:', err);
+        }
+    };
+
+    const updateLeadStage = async (leadId: string, newStageId: string) => {
+        // Optimistic Update
+        const oldLeads = [...leads];
+
+        const updatedLeads = leads.map(lead => {
+            if (lead.id === leadId) {
+                // For now, just update the stageId. Status might be derived from stage later.
+                return { ...lead, stageId: newStageId };
+            }
+            return lead;
+        });
+        setLeads(updatedLeads);
+
+        try {
+            // Check target stage
+            const targetStage = pipeline.stages.find(s => s.id === newStageId);
+            const newStatus = targetStage ? targetStage.name as LeadStatus : 'New';
+
+            const updatePayload: any = {
+                pipeline_stage_id: newStageId,
+                status: newStatus
+            };
+
+            // Update local state reflectively
+            const updatedLeadsWithStatus = updatedLeads.map(l =>
+                l.id === leadId ? { ...l, status: newStatus } : l
+            );
+            setLeads(updatedLeadsWithStatus);
+
+            const { error } = await supabase.from('leads').update(updatePayload).eq('id', leadId);
+
+            if (error) throw error;
+        } catch (err) {
+            console.error('Error moving lead:', err);
+            setLeads(oldLeads); // Revert
+        }
+    };
+
+    const openAddLeadModal = () => setIsAddLeadModalOpen(true);
+    const openImportModal = () => setIsImportModalOpen(true);
+
+    const importLeads = async (importedLeads: Partial<Lead>[]) => {
+        try {
+            for (const lead of importedLeads) {
+                if (lead.name) {
+                    await addLead(lead as Lead);
+                }
+            }
+        } catch (err) {
+            console.error('Error importing batch:', err);
+        }
+    };
+
+    const renderContent = () => {
+        switch (activeTab) {
+            case 'dashboard':
+                return <Dashboard leads={leads} onOpenAddLead={openAddLeadModal} onOpenImport={openImportModal} />;
+            case 'pipeline':
+                return (
+                    <Pipeline
+                        pipeline={pipeline}
+                        leads={leads}
+                        updateLeadStage={updateLeadStage}
+                        onAddLead={addLead}
+                        onUpdateLead={updateLead}
+                        onDeleteLead={deleteLead}
+                        onOpenAddLead={openAddLeadModal}
+                        onOpenImport={openImportModal}
+                    />
+                );
+            case 'leads':
+                return (
+                    <LeadsList
+                        leads={leads}
+                        onOpenAddLead={openAddLeadModal}
+                        onOpenImport={openImportModal}
+                        onDeleteLead={deleteLead}
+                        onUpdateLeadStage={updateLeadStage}
+                        stages={pipeline.stages}
+                    />
+                );
+            case 'billing':
+                return <Billing />;
+            case 'settings':
+                return <Settings />;
+            default:
+                return <Dashboard leads={leads} onOpenAddLead={openAddLeadModal} onOpenImport={openImportModal} />;
+        }
+    };
 
     return (
-    <div className="p-12 max-w-6xl mx-auto animate-in fade-in duration-500">
-        <header className="mb-10">
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        </header>
-
-        <div className="flex gap-12 items-start">
-            {/* Left Navigation */}
-            <div className="w-60 flex flex-col gap-1 shrink-0">
-                {navItems.map((item) => (
-                    <button 
-                        key={item.name}
-                        onClick={() => setActiveCategory(item.name)}
-                        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
-                            activeCategory === item.name 
-                                ? 'bg-gray-100 text-gray-900' 
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                        }`}
-                    >
-                        <item.icon size={18} strokeWidth={2} /> 
-                        {item.name}
-                    </button>
-                ))}
-            </div>
-
-            {/* Right Content */}
-            <div className="flex-1 space-y-8">
-                {activeCategory === 'General' && (
-                    <>
-                        {/* Workspace Preferences */}
-                        <GlassCard className="p-0 border border-gray-200 shadow-sm overflow-hidden">
-                            <div className="p-6 border-b border-gray-100">
-                                <h3 className="text-base font-semibold text-gray-900 mb-1">Workspace Preferences</h3>
-                                <p className="text-sm text-gray-500">Manage your workspace appearance and behavior.</p>
-                            </div>
-                            <div className="p-6 space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-gray-700">Dark Mode</span>
-                                    <Toggle checked={false} />
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-gray-700">Desktop Notifications</span>
-                                    <Toggle checked={true} />
-                                </div>
-                            </div>
-                        </GlassCard>
-
-                        {/* Integrations */}
-                        <GlassCard className="p-0 border border-gray-200 shadow-sm overflow-hidden">
-                            <div className="p-6 border-b border-gray-100">
-                                <h3 className="text-base font-semibold text-gray-900 mb-1">Integrations</h3>
-                                <p className="text-sm text-gray-500">Connect third-party tools.</p>
-                            </div>
-                            <div className="divide-y divide-gray-100">
-                                {/* Slack Item */}
-                                <div className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-[#1F2937] rounded-lg flex items-center justify-center text-white">
-                                            <Terminal size={20} />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-900">Slack</h4>
-                                            <p className="text-xs text-gray-500">Messaging</p>
-                                        </div>
-                                    </div>
-                                    <button className="px-4 py-1.5 border border-gray-200 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                                        Connect
-                                    </button>
-                                </div>
-
-                                {/* Gmail Item */}
-                                <div className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600">
-                                            <Mail size={20} />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-900">Gmail</h4>
-                                            <p className="text-xs text-gray-500">Email Sync</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs font-medium text-green-600 px-4">
-                                        <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                                        Connected
-                                    </div>
-                                </div>
-                            </div>
-                        </GlassCard>
-                    </>
-                )}
-                
-                {/* Placeholders for other tabs */}
-                {activeCategory !== 'General' && (
-                    <div className="flex items-center justify-center h-64 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-                        <p className="text-sm text-gray-500">Settings for {activeCategory} coming soon...</p>
-                    </div>
-                )}
-            </div>
+        <div className="flex min-h-screen font-sans text-gray-900 antialiased selection:bg-primary-500/10 selection:text-primary-600 bg-white">
+            <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
+            <main className="ml-64 flex-1 h-screen overflow-y-auto relative bg-[#F9FAFB]">
+                <div className="relative min-h-full">
+                    <Routes>
+                        <Route path="/dashboard" element={<Dashboard leads={leads} onOpenAddLead={openAddLeadModal} onOpenImport={openImportModal} />} />
+                        <Route path="/pipeline" element={<Pipeline pipeline={pipeline} leads={leads} updateLeadStage={updateLeadStage} onAddLead={addLead} onUpdateLead={updateLead} onDeleteLead={deleteLead} onOpenAddLead={openAddLeadModal} onOpenImport={openImportModal} />} />
+                        <Route path="/leads" element={
+                            <LeadsList
+                                leads={leads}
+                                onOpenAddLead={openAddLeadModal}
+                                onOpenImport={openImportModal}
+                                onDeleteLead={deleteLead}
+                                onUpdateLeadStage={updateLeadStage}
+                                stages={pipeline.stages}
+                            />
+                        } />
+                        <Route path="/billing" element={<Billing />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    </Routes>
+                </div>
+                <AddLeadModal
+                    isOpen={isAddLeadModalOpen}
+                    onClose={() => setIsAddLeadModalOpen(false)}
+                    onAdd={addLead}
+                    stages={pipeline.stages}
+                />
+                <ImportLeadsModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    onImport={importLeads}
+                    stages={pipeline.stages}
+                />
+            </main>
         </div>
-    </div>
     );
 };
 
+
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [pipeline] = useState(DEFAULT_PIPELINE);
-  const [leads, setLeads] = useState(INITIAL_LEADS);
-
-  // CRUD Functions
-  const addLead = (lead: Lead) => {
-    setLeads([...leads, lead]);
-  };
-
-  const updateLead = (updatedLead: Lead) => {
-    setLeads(leads.map(l => l.id === updatedLead.id ? updatedLead : l));
-  };
-
-  const deleteLead = (leadId: string) => {
-    setLeads(leads.filter(l => l.id !== leadId));
-  };
-
-  const updateLeadStage = (leadId: string, newStageId: string) => {
-    setLeads(prev => prev.map(lead => {
-        if (lead.id === leadId) {
-            let status = lead.status;
-            if (newStageId === 'stage-won') status = 'Won';
-            if (newStageId === 'stage-new') status = 'New';
-            if (newStageId === 'stage-contacted') status = 'Contacted';
-            if (newStageId === 'stage-qualified') status = 'Qualified';
-            if (newStageId === 'stage-negotiation') status = 'Negotiation';
-            
-            return { ...lead, stageId: newStageId, status };
-        }
-        return lead;
-    }));
-  };
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard leads={leads} />;
-      case 'pipeline':
-        return (
-          <Pipeline 
-            pipeline={pipeline} 
-            leads={leads} 
-            updateLeadStage={updateLeadStage} 
-            onAddLead={addLead}
-            onUpdateLead={updateLead}
-            onDeleteLead={deleteLead}
-          />
-        );
-      case 'leads':
-        return <LeadsList leads={leads} />;
-      case 'billing':
-        return <Billing />;
-      case 'settings':
-        return <Settings />;
-      default:
-        return <Dashboard leads={leads} />;
-    }
-  };
-
-  return (
-    <div className="flex min-h-screen font-sans text-gray-900 antialiased selection:bg-primary-500/10 selection:text-primary-600 bg-white">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      
-      {/* Main Content Area */}
-      <main className="ml-64 flex-1 h-screen overflow-y-auto relative bg-[#F9FAFB]">
-        <div className="relative min-h-full">
-           {renderContent()}
-        </div>
-      </main>
-    </div>
-  );
+    return (
+        <Router>
+            <AuthProvider>
+                <Routes>
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/*" element={
+                        <ProtectedRoute>
+                            <AppLayout />
+                        </ProtectedRoute>
+                    } />
+                </Routes>
+            </AuthProvider>
+        </Router>
+    );
 }

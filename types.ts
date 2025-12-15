@@ -1,4 +1,4 @@
-export type LeadStatus = 'New' | 'Contacted' | 'Qualified' | 'Negotiation' | 'Won' | 'Lost';
+export type LeadStatus = 'New' | 'Contacted' | 'Qualified' | 'Negotiation' | 'Closed' | 'Lost' | 'Won';
 
 export interface Lead {
   id: string;
@@ -12,6 +12,7 @@ export interface Lead {
   ownerId: string;
   createdAt: string;
   avatarUrl?: string;
+  tags?: string[];
 }
 
 export interface PipelineStage {

@@ -8,22 +8,23 @@ export const CURRENT_USER: User = {
 };
 
 export const RECENT_ACTIVITY = [
-    { id: 1, user: 'Alex Morgan', action: 'closed a deal', target: 'Acme Corp', time: '2m', initials: 'AM' },
-    { id: 2, user: 'Sarah Connor', action: 'added lead', target: 'Cyberdyne', time: '1h', initials: 'SC' },
-    { id: 3, user: 'John Doe', action: 'moved stage', target: 'Stark Ind', time: '3h', initials: 'JD' },
-    { id: 4, user: 'Ellen Ripley', action: 'emailed', target: 'Weyland-Yutani', time: '5h', initials: 'ER' },
-    { id: 5, user: 'Bruce Wayne', action: 'updated value', target: 'Wayne Ent', time: '1d', initials: 'BW' },
+  { id: 1, user: 'Alex Morgan', action: 'closed a deal', target: 'Acme Corp', time: '2m', initials: 'AM' },
+  { id: 2, user: 'Sarah Connor', action: 'added lead', target: 'Cyberdyne', time: '1h', initials: 'SC' },
+  { id: 3, user: 'John Doe', action: 'moved stage', target: 'Stark Ind', time: '3h', initials: 'JD' },
+  { id: 4, user: 'Ellen Ripley', action: 'emailed', target: 'Weyland-Yutani', time: '5h', initials: 'ER' },
+  { id: 5, user: 'Bruce Wayne', action: 'updated value', target: 'Wayne Ent', time: '1d', initials: 'BW' },
 ];
 
 export const DEFAULT_PIPELINE: Pipeline = {
   id: 'p1',
   name: 'Sales Pipeline',
   stages: [
-    { id: 'stage-new', name: 'New Lead', order: 0, color: 'bg-gray-200' },
+    { id: 'stage-new', name: 'New', order: 0, color: 'bg-gray-200' },
     { id: 'stage-contacted', name: 'Contacted', order: 1, color: 'bg-blue-200' },
     { id: 'stage-qualified', name: 'Qualified', order: 2, color: 'bg-indigo-200' },
-    { id: 'stage-negotiation', name: 'Negotiation', order: 3, color: 'bg-purple-200' },
-    { id: 'stage-won', name: 'Closed Won', order: 4, color: 'bg-green-200' },
+    { id: 'stage-negotiation', name: 'Negotiation', order: 3, color: 'bg-orange-200' },
+    { id: 'stage-won', name: 'Closed', order: 4, color: 'bg-green-200' },
+    { id: 'stage-lost', name: 'Lost', order: 5, color: 'bg-red-200' },
   ],
 };
 
@@ -58,7 +59,7 @@ export const INITIAL_LEADS: Lead[] = [
     company: 'Aimbus',
     email: 'chen@aimbus.com',
     value: 13864,
-    status: 'Won',
+    status: 'Closed',
     stageId: 'stage-won',
     ownerId: 'u1',
     createdAt: '2023-10-05',
