@@ -113,6 +113,7 @@ const AppLayout = () => {
                         });
                     }
 
+
                     // 4. Get Leads
                     const { data: leadsData } = await supabase
                         .from('leads')
@@ -135,6 +136,65 @@ const AppLayout = () => {
                         }));
                         setLeads(mappedLeads);
                     }
+
+                    // 5. Set up real-time subscription for leads
+                    const leadsSubscription = supabase
+                        .channel('leads-changes')
+                        .on(
+                            'postgres_changes',
+                            {
+                                event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+                                schema: 'public',
+                                table: 'leads',
+                                filter: `workspace_id=eq.${workspace.id}`
+                            },
+                            (payload) => {
+                                console.log('Real-time update:', payload);
+
+                                if (payload.eventType === 'INSERT') {
+                                    const newLead = payload.new as any;
+                                    const mappedLead = {
+                                        id: newLead.id,
+                                        name: newLead.name,
+                                        company: newLead.company || '',
+                                        email: newLead.email || '',
+                                        phone: newLead.phone,
+                                        value: Number(newLead.value),
+                                        status: newLead.status === 'Won' ? 'Closed' : (newLead.status === 'Open' ? 'New' : newLead.status),
+                                        stageId: newLead.pipeline_stage_id,
+                                        ownerId: newLead.owner_user_id,
+                                        createdAt: newLead.created_at,
+                                        avatarUrl: ''
+                                    };
+                                    setLeads(prev => [...prev, mappedLead]);
+                                } else if (payload.eventType === 'UPDATE') {
+                                    const updatedLead = payload.new as any;
+                                    const mappedLead = {
+                                        id: updatedLead.id,
+                                        name: updatedLead.name,
+                                        company: updatedLead.company || '',
+                                        email: updatedLead.email || '',
+                                        phone: updatedLead.phone,
+                                        value: Number(updatedLead.value),
+                                        status: updatedLead.status === 'Won' ? 'Closed' : (updatedLead.status === 'Open' ? 'New' : updatedLead.status),
+                                        stageId: updatedLead.pipeline_stage_id,
+                                        ownerId: updatedLead.owner_user_id,
+                                        createdAt: updatedLead.created_at,
+                                        avatarUrl: ''
+                                    };
+                                    setLeads(prev => prev.map(l => l.id === mappedLead.id ? mappedLead : l));
+                                } else if (payload.eventType === 'DELETE') {
+                                    const deletedId = (payload.old as any).id;
+                                    setLeads(prev => prev.filter(l => l.id !== deletedId));
+                                }
+                            }
+                        )
+                        .subscribe();
+
+                    // Cleanup subscription on unmount
+                    return () => {
+                        leadsSubscription.unsubscribe();
+                    };
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -180,8 +240,8 @@ const AppLayout = () => {
                 status: lead.status === 'New' ? 'Open' : lead.status, // Normalize 'New' to 'Open' for DB consistency if desired, or keep 'New'
                 pipeline_stage_id: targetStageId,
                 workspace_id: workspace.id,
-                owner_user_id: user.id,
-                tags: lead.tags || []
+                owner_user_id: user.id
+                // tags: lead.tags || [] // Temporarily commented out until tags column is added to database
             }).select().single();
 
             if (error) {
