@@ -85,33 +85,33 @@ export const Pipeline: React.FC<PipelineProps> = ({ pipeline, leads, updateLeadS
   };
 
   return (
-    <div className="h-full flex flex-col p-8 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
-      <header className="mb-6 flex justify-between items-center shrink-0">
+    <div className="h-full flex flex-col p-4 sm:p-6 lg:p-8 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+      <header className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Pipeline</h1>
           <p className="text-gray-500 text-sm">Manage your deal flow across stages.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={onOpenImport}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-md text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
           >
             <ArrowDownToLine size={16} />
-            Import
+            <span className="hidden sm:inline">Import</span>
           </button>
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-md text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
           >
             <ArrowUpFromLine size={16} />
-            Export
+            <span className="hidden sm:inline">Export</span>
           </button>
           <button
             onClick={() => onOpenAddLead()}
             className="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
           >
             <Plus size={16} />
-            New Deal
+            <span className="hidden sm:inline">New Deal</span>
           </button>
         </div>
       </header>

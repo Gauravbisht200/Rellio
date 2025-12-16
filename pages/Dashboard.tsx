@@ -240,10 +240,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads, onOpenAddLead, onOp
   };
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between items-end">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Overview</h1>
             <p className="text-sm text-gray-500">Performance metrics for the current period.</p>
@@ -256,28 +256,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads, onOpenAddLead, onOp
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="text-sm text-gray-700 bg-transparent border-none focus:ring-0 cursor-pointer outline-none"
+              className="text-sm text-gray-700 bg-transparent border-none focus:ring-0 cursor-pointer outline-none w-24"
             />
             <span className="text-gray-400">-</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="text-sm text-gray-700 bg-transparent border-none focus:ring-0 cursor-pointer outline-none"
+              className="text-sm text-gray-700 bg-transparent border-none focus:ring-0 cursor-pointer outline-none w-24"
             />
           </div>
         </div>
-        <div className="flex gap-3">
-          <button onClick={onOpenImport} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
-            <Download size={16} /> Import
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={onOpenImport}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-md text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            <Download size={16} />
+            <span className="hidden sm:inline">Import</span>
           </button>
-          <button onClick={onOpenAddLead} className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+          <button
+            onClick={onOpenAddLead}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
+          >
             <Plus size={16} />
-            Add Lead
+            <span className="hidden sm:inline">New Deal</span>
           </button>
         </div>
       </div>
-
       {/* Tabs */}
       <div className="flex gap-6 border-b border-gray-200">
         <button

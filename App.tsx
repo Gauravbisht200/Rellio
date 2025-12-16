@@ -385,7 +385,7 @@ const AppLayout = () => {
     return (
         <div className="flex min-h-screen font-sans text-gray-900 antialiased selection:bg-primary-500/10 selection:text-primary-600 bg-white">
             <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
-            <main className="ml-64 flex-1 h-screen overflow-y-auto relative bg-[#F9FAFB]">
+            <main className="ml-0 lg:ml-64 flex-1 h-screen overflow-y-auto relative bg-[#F9FAFB] pt-16 lg:pt-0">
                 <div className="relative min-h-full">
                     <Routes>
                         <Route path="/dashboard" element={<Dashboard leads={leads} onOpenAddLead={openAddLeadModal} onOpenImport={openImportModal} />} />
@@ -405,19 +405,19 @@ const AppLayout = () => {
                         <Route path="*" element={<Navigate to="/dashboard" replace />} />
                     </Routes>
                 </div>
-                <AddLeadModal
-                    isOpen={isAddLeadModalOpen}
-                    onClose={() => setIsAddLeadModalOpen(false)}
-                    onAdd={addLead}
-                    stages={pipeline.stages}
-                />
-                <ImportLeadsModal
-                    isOpen={isImportModalOpen}
-                    onClose={() => setIsImportModalOpen(false)}
-                    onImport={importLeads}
-                    stages={pipeline.stages}
-                />
             </main>
+            <AddLeadModal
+                isOpen={isAddLeadModalOpen}
+                onClose={() => setIsAddLeadModalOpen(false)}
+                onAdd={addLead}
+                stages={pipeline.stages}
+            />
+            <ImportLeadsModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImport={importLeads}
+                stages={pipeline.stages}
+            />
         </div>
     );
 };

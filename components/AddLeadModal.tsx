@@ -50,75 +50,94 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onA
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <GlassCard className="w-full max-w-md animate-in zoom-in-95 duration-200" onClick={(e: any) => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold text-gray-900">Create New Lead</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <GlassCard className="w-full h-full sm:h-auto sm:max-w-md sm:rounded-xl rounded-none overflow-y-auto">
+                <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-gray-900">Add New Lead</h2>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        aria-label="Close"
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
                     <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Name</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
                         <input
+                            type="text"
                             required
-                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             value={formData.name}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base sm:text-sm"
+                            placeholder="John Doe"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Company</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
                         <input
-                            required
-                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            type="text"
                             value={formData.company}
-                            onChange={e => setFormData({ ...formData, company: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                            className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base sm:text-sm"
+                            placeholder="Acme Inc."
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Value ($)</label>
-                        <input
-                            type="number"
-                            required
-                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                            value={formData.value}
-                            onChange={e => setFormData({ ...formData, value: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Email</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                         <input
                             type="email"
-                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             value={formData.email}
-                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base sm:text-sm"
+                            placeholder="john@example.com"
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Stage</label>
-                            <select
-                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                                value={formData.stageId}
-                                onChange={e => setFormData({ ...formData, stageId: e.target.value })}
-                            >
-                                {stages.map(stage => (
-                                    <option key={stage.id} value={stage.id}>{stage.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Tags</label>
-                            <TagInput
-                                tags={formData.tags ? formData.tags.split(',').filter(Boolean) : []}
-                                onChange={(newTags) => setFormData({ ...formData, tags: newTags.join(',') })}
-                                suggestions={['warm intro', 'cold call', 'lead', 'urgent', 'enterprise']}
-                            />
-                        </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Deal Value ($)</label>
+                        <input
+                            type="number"
+                            value={formData.value}
+                            onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                            className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base sm:text-sm"
+                            placeholder="10000"
+                        />
                     </div>
-                    <div className="pt-4 flex gap-3">
-                        <button type="button" onClick={onClose} className="flex-1 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">Cancel</button>
-                        <button type="submit" className="flex-1 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm">Create Lead</button>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Pipeline Stage</label>
+                        <select
+                            value={formData.stageId}
+                            onChange={(e) => setFormData({ ...formData, stageId: e.target.value })}
+                            className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base sm:text-sm"
+                        >
+                            {stages.map(stage => (
+                                <option key={stage.id} value={stage.id}>{stage.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                        <TagInput
+                            value={formData.tags}
+                            onChange={(tags) => setFormData({ ...formData, tags })}
+                            placeholder="Add tags..."
+                        />
+                    </div>
+                    <div className="flex gap-3 pt-4 sticky bottom-0 bg-white pb-4 sm:pb-0">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors text-base sm:text-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="flex-1 px-4 py-2.5 sm:py-2 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition-colors text-base sm:text-sm"
+                        >
+                            Create Lead
+                        </button>
                     </div>
                 </form>
             </GlassCard>

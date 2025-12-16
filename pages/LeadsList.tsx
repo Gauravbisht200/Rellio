@@ -122,7 +122,7 @@ export const LeadsList: React.FC<LeadsListProps> = ({ leads, onOpenAddLead, onOp
     };
 
     return (
-        <div className="p-8 max-w-[1400px] mx-auto animate-in fade-in duration-500">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-in fade-in duration-500">
 
             {/* Table Controls Header */}
             <div className="flex justify-between items-center mb-4">
@@ -251,14 +251,14 @@ export const LeadsList: React.FC<LeadsListProps> = ({ leads, onOpenAddLead, onOp
 
                     <div className="h-4 w-px bg-gray-300 mx-1"></div>
                     <button onClick={onOpenImport} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
-                        <Download size={14} /> Import
+                        <Download size={14} /> <span className="hidden sm:inline">Import</span>
                     </button>
                     <button onClick={handleExport} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
-                        <ArrowUpFromLine size={14} /> Export
+                        <ArrowUpFromLine size={14} /> <span className="hidden sm:inline">Export</span>
                     </button>
                     <button onClick={onOpenAddLead} className="flex items-center gap-2 px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-md transition-colors shadow-sm">
                         <Plus size={16} />
-                        Add New
+                        <span className="hidden sm:inline">Add New</span>
                     </button>
                 </div>
             </div>
